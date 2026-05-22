@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQTalk</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e8e8e8; }
+
+/* ── JOIN ── */
+.join-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px;
+}
+.join-logo { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -1px; margin-bottom: 4px; }
+.join-logo span { color: #1D9E75; }
+.join-tag { font-size: 12px; color: #555; margin-bottom: 32px; }
+.join-card {
+  background: #1a1d27; border: 0.5px solid #2a2d3a; border-radius: 16px;
+  padding: 24px; width: 100%; max-width: 360px;
+}
+.field-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+.field-input {
+  width: 100%; background: #0f1117; border: 0.5px solid #2a2d3a; border-radius: 8px;
+  color: #e8e8e8; font-size: 15px; padding: 12px 14px; outline: none;
+  font-family: inherit; -webkit-appearance: none; appearance: none; margin-bottom: 14px;
+}
+.field-input:focus { border-color: #1D9E75; }
+.join-btn {
+  width: 100%; padding: 13px; background: #1D9E75; color: #fff; border: none;
+  border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.join-btn:active { background: #19896a; transform: scale(0.98); }
+.join-version { margin-top: 14px; font-size: 10px; color: #555; }
+
+/* ── APP SHELL ── */
+.app { display: flex; flex-direction: column; height: 100vh; max-width: 480px; margin: 0 auto; }
+
+/* ── HEADER ── */
+.hdr {
+  background: #1a1d27; border-bottom: 0.5px solid #2a2d3a;
+  padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.hdr-logo { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.5px; flex: 1; }
+.hdr-logo span { color: #1D9E75; }
+.hdr-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; animation: pglow 2s infinite; }
+@keyframes pglow { 0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,.5)}50%{box-shadow:0 0 0 4px rgba(29,158,117,0)} }
+.hdr-name { font-size: 13px; color: #aaa; }
+.hdr-pill {
+  font-size: 11px; color: #555; background: #0f1117; border: 0.5px solid #2a2d3a;
+  border-radius: 10px; padding: 2px 8px;
+}
+
+/* ── TABS ── */
+.tabs { display: flex; background: #1a1d27; border-bottom: 0.5px solid #2a2d3a; flex-shrink: 0; }
+.tab {
+  flex: 1; padding: 10px 6px; background: none; border: none; color: #555;
+  font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+  border-bottom: 2px solid transparent; letter-spacing: 0.05em; text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.tab.on { color: #1D9E75; border-bottom-color: #1D9E75; }
+.badge {
+  display: inline-block; background: #2a2d3a; color: #888; font-size: 9px;
+  border-radius: 8px; padding: 1px 5px; margin-left: 3px; vertical-align: middle;
+}
+.tab.on .badge { background: #0a2a20; color: #1D9E75; }
+
+/* ── PANES ── */
+.pane { display: none; flex: 1; overflow-y: auto; padding: 12px 16px; }
+.pane.on { display: block; }
+.sec-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; margin-top: 4px; }
+
+/* ── CARDS ── */
+.ucard {
+  background: #1a1d27; border: 0.5px solid #2a2d3a; border-radius: 12px;
+  padding: 10px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.ucard.conn    { border-color: #378ADD33; background: #0a1322; }
+.ucard.talking { border-color: #1D9E75;   background: #081a14; }
+
+.av {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; flex-shrink: 0;
+}
+.av-g { background: #0a2a20; color: #1D9E75; }
+.av-b { background: #0a1a2e; color: #378ADD; }
+.av-y { background: #1a1500; color: #f39c12; }
+
+.uinfo { flex: 1; min-width: 0; }
+.uname { font-size: 13px; font-weight: 500; color: #e8e8e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.usub  { font-size: 11px; color: #555; margin-top: 1px; }
+.usub.online   { color: #1D9E75; }
+.usub.talking  { color: #f39c12; }
+.usub.conn     { color: #378ADD; }
+.uacts { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 6px 11px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; transition: background 0.12s;
+}
+.btn-g  { background: #0a2a20; color: #1D9E75; border: 0.5px solid #1D9E7540; }
+.btn-g:active  { background: #1D9E75; color: #fff; }
+.btn-b  { background: #0a1a2e; color: #378ADD; border: 0.5px solid #378ADD40; }
+.btn-b:active  { background: #378ADD; color: #fff; }
+.btn-gr { background: #2a2d3a; color: #aaa;    border: 0.5px solid #3a3d4a; }
+.btn-gr:active { background: #3a3d4a; }
+.btn-r  { background: #2a1015; color: #e74c3c; border: 0.5px solid #e74c3c40; }
+.btn-r:active  { background: #e74c3c; color: #fff; }
+.btn-active { background: #1D9E75 !important; color: #fff !important; }
+
+/* ── TEAM CARDS ── */
+.tcard {
+  background: #1a1d27; border: 0.5px solid #2a2d3a; border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.tcard.mine   { border-color: #1D9E7530; }
+.tcard.active { border-color: #1D9E75; background: #081a14; }
+.thead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.tname { font-size: 13px; font-weight: 600; color: #e8e8e8; flex: 1; }
+.tcnt  { font-size: 11px; color: #555; }
+.tchips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.chip {
+  font-size: 11px; color: #888; background: #0f1117;
+  border: 0.5px solid #2a2d3a; border-radius: 10px; padding: 2px 8px;
+}
+.chip.me { color: #378ADD; border-color: #378ADD40; }
+.chip.tk { color: #f39c12; border-color: #f39c1240; }
+.tacts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.active-dot {
+  font-size: 10px; background: #1D9E75; color: #fff;
+  padding: 3px 9px; border-radius: 10px; font-weight: 700;
+}
+
+/* ── CREATE ROW ── */
+.create-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.create-in {
+  flex: 1; background: #0f1117; border: 0.5px solid #2a2d3a; border-radius: 8px;
+  color: #e8e8e8; font-size: 13px; padding: 10px 12px; outline: none;
+  font-family: inherit; -webkit-appearance: none; appearance: none;
+}
+.create-in:focus { border-color: #1D9E75; }
+
+/* ── ACTIVE CONNECTIONS ── */
+.conncard {
+  background: #1a1d27; border: 0.5px solid #2a2d3a; border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+}
+.conncard.audio { border-color: #378ADD30; }
+
+/* ── LOG ── */
+.logbox {
+  background: #0f1117; border: 0.5px solid #2a2d3a; border-radius: 10px;
+  padding: 10px 12px; max-height: 130px; overflow-y: auto; margin-top: 12px;
+}
+.log-row { font-size: 11px; color: #444; font-family: monospace; line-height: 1.9; }
+.log-row.g { color: #1D9E75; }
+.log-row.y { color: #f39c12; }
+.log-row.r { color: #e74c3c; }
+
+/* ── PTT BAR ── */
+.ptt-bar {
+  flex-shrink: 0; background: #1a1d27; border-top: 0.5px solid #2a2d3a;
+  padding: 10px 16px 14px;
+}
+.ptt-ctx {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; margin-bottom: 8px;
+}
+.ptt-ctx-label { font-size: 11px; color: #555; }
+.ptt-badge {
+  font-size: 11px; background: #0f1117; border: 0.5px solid #2a2d3a;
+  border-radius: 8px; padding: 3px 10px; color: #666;
+}
+.ptt-badge.direct { color: #378ADD; border-color: #378ADD40; background: #0a1322; }
+.ptt-badge.team   { color: #1D9E75; border-color: #1D9E7540; background: #081a14; }
+.ptt-btn {
+  width: 100%; padding: 20px 16px; border-radius: 14px; border: none;
+  font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, background 0.1s; touch-action: none;
+}
+.ptt-off  { background: #1a1d27; border: 1.5px solid #2a2d3a; color: #383b4a; cursor: default; }
+.ptt-rdy  { background: #0a1f18; border: 1.5px solid #1D9E75; color: #1D9E75; }
+.ptt-live { background: #1D9E75; color: #fff; transform: scale(0.97); }
+.kbd-hint { text-align: center; margin-top: 6px; font-size: 10px; color: #444; }
+kbd { background: #2a2d3a; color: #888; border: 0.5px solid #3a3d4a; border-radius: 3px; padding: 1px 5px; font-family: monospace; }
+
+/* ── WAVE ── */
+.wave { display: flex; gap: 3px; align-items: center; height: 18px; }
+.wb { width: 3px; border-radius: 2px; background: #fff; animation: wave .7s ease-in-out infinite; }
+.wb:nth-child(1){height:4px;animation-delay:0s}
+.wb:nth-child(2){height:10px;animation-delay:.1s}
+.wb:nth-child(3){height:16px;animation-delay:.2s}
+.wb:nth-child(4){height:10px;animation-delay:.3s}
+.wb:nth-child(5){height:4px;animation-delay:.4s}
+@keyframes wave{0%,100%{transform:scaleY(.4);opacity:.5}50%{transform:scaleY(1);opacity:1}}
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 28px 12px; }
+.empty-icon { font-size: 28px; margin-bottom: 8px; }
+.empty-txt { font-size: 12px; color: #444; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<!-- ── JOIN SCREEN ── -->
+<div id="joinScreen" class="join-wrap">
+  <div class="join-logo">IQ<span>Talk</span></div>
+  <div class="join-tag">Incquet push-to-talk · WebRTC</div>
+  <div class="join-card">
+    <div class="field-label">Your name</div>
+    <input id="joinName" class="field-input" placeholder="e.g. Priya" maxlength="20" autocomplete="off" />
+    <button class="join-btn" onclick="joinApp()">Join</button>
+  </div>
+  <div class="join-version">v2.0 · prototype</div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="mainApp" style="display:none" class="app">
+
+  <div class="hdr">
+    <div class="hdr-logo">IQ<span>Talk</span></div>
+    <div class="hdr-dot"></div>
+    <span class="hdr-name" id="hdrName"></span>
+    <span class="hdr-pill" id="hdrCount">1 online</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tab-people" onclick="showTab('people')">
+      People<span class="badge" id="bdg-people">0</span>
+    </button>
+    <button class="tab" id="tab-teams" onclick="showTab('teams')">
+      Teams<span class="badge" id="bdg-teams">0</span>
+    </button>
+    <button class="tab" id="tab-active" onclick="showTab('active')">
+      Active<span class="badge" id="bdg-active">0</span>
+    </button>
+  </div>
+
+  <!-- People -->
+  <div id="pane-people" class="pane on">
+    <div class="sec-label">Online now</div>
+    <div id="usersList">
+      <div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">No one else online yet.<br>Share the link to invite teammates.</div></div>
+    </div>
+  </div>
+
+  <!-- Teams -->
+  <div id="pane-teams" class="pane">
+    <div class="sec-label">Create a team</div>
+    <div class="create-row">
+      <input id="newTeamName" class="create-in" placeholder="Team name…" maxlength="30" autocomplete="off"
+             onkeydown="if(event.key==='Enter')createTeam()" />
+      <button class="btn btn-g" onclick="createTeam()">Create</button>
+    </div>
+    <div class="sec-label">All teams</div>
+    <div id="teamsList">
+      <div class="empty"><div class="empty-icon">📡</div><div class="empty-txt">No teams yet.<br>Create one above or wait for a teammate.</div></div>
+    </div>
+  </div>
+
+  <!-- Active -->
+  <div id="pane-active" class="pane">
+    <div class="sec-label">Connected peers</div>
+    <div id="connList">
+      <div class="empty"><div class="empty-icon">🔌</div><div class="empty-txt">No connections yet.<br>Direct-talk a user or join a team.</div></div>
+    </div>
+    <div class="logbox" id="log"></div>
+  </div>
+
+  <!-- PTT Bar -->
+  <div class="ptt-bar">
+    <div class="ptt-ctx">
+      <span class="ptt-ctx-label">Talking to:</span>
+      <span class="ptt-badge" id="pttBadge">— none selected —</span>
+    </div>
+    <button class="ptt-btn ptt-off" id="pttBtn"
+      onmousedown="startTalk()" onmouseup="stopTalk()"
+      ontouchstart="startTalk(event)" ontouchend="stopTalk(event)"
+      ontouchcancel="stopTalk(event)">
+      <span id="pttIcon">🎙️</span>
+      <span id="pttLabel">Hold to Talk</span>
+    </button>
+    <div class="kbd-hint">Hold <kbd>Space</kbd> to talk</div>
+  </div>
+</div>
+
+<div id="audioBox"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+// ─── PEER CONFIG ─────────────────────────────────────────────────────────────
+function makeCfg() {
+  const hosted = location.hostname !== 'localhost' &&
+                 location.hostname !== '127.0.0.1' &&
+                 location.protocol !== 'file:';
+  const base = hosted ? {
+    host: location.hostname,
+    port: location.port ? parseInt(location.port) : 443,
+    path: '/peerjs',
+    secure: location.protocol === 'https:'
+  } : {};
+  return {
+    ...base,
+    debug: 0,
+    config: {
+      iceTransportPolicy: 'all',
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:openrelay.metered.ca:80' },
+        { urls: 'turn:openrelay.metered.ca:80',               username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443',              username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp',username: 'openrelayproject', credential: 'openrelayproject' }
+      ]
+    }
+  };
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let socket = null, peer = null;
+let myPeerId = null, myName = '';
+let localStream = null;
+let isTalking = false;
+
+// PTT context
+let talkMode    = 'none';   // 'none' | 'direct' | 'team'
+let activePeerId = null;
+let activeTeamId = null;
+
+// peerId → { name, socketId, conn, call, outStream, audioEl, audioOk }
+const cp = {};
+
+// From server
+let onlineUsers = [];
+let teamsList   = [];
+const myTeamIds = new Set();
+
+// Who is currently talking (for UI indicators)
+const talkingSet = new Set();
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function addLog(msg, type = '') {
+  const el = document.getElementById('log');
+  const t  = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d  = document.createElement('div');
+  d.className = 'log-row ' + type;
+  d.textContent = `[${t}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function initials(n) { return String(n).substring(0,2).toUpperCase(); }
+
+// ─── JOIN ─────────────────────────────────────────────────────────────────────
+async function joinApp() {
+  const v = document.getElementById('joinName').value.trim();
+  myName  = v || 'User';
+
+  document.getElementById('joinScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display    = 'flex';
+  document.getElementById('hdrName').textContent      = myName;
+
+  await ensureMic();
+  initNetwork();
+}
+
+document.getElementById('joinName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinApp();
+});
+
+// ─── MIC ─────────────────────────────────────────────────────────────────────
+async function ensureMic() {
+  if (localStream) return true;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    addLog('Microphone ready', 'g');
+    return true;
+  } catch(e) {
+    addLog('Mic denied: ' + e.message, 'r');
+    return false;
+  }
+}
+
+function makeOutStream() {
+  const s = localStream.clone();
+  s.getAudioTracks().forEach(t => t.enabled = false); // start muted
+  return s;
+}
+
+// ─── NETWORK INIT ────────────────────────────────────────────────────────────
+function initNetwork() {
+  let sockReady = false, peerReady = false;
+
+  socket = io();
+
+  socket.on('connect', () => {
+    addLog('Server connected', 'g');
+    sockReady = true;
+    tryRegister();
+  });
+
+  socket.on('users-updated', list => {
+    onlineUsers = list.filter(u => u.peerId !== myPeerId);
+    renderPeople();
+    const total = onlineUsers.length + 1;
+    document.getElementById('hdrCount').textContent = total + ' online';
+    document.getElementById('bdg-people').textContent = onlineUsers.length;
+  });
+
+  socket.on('teams-updated', list => {
+    teamsList = list;
+    renderTeams();
+    document.getElementById('bdg-teams').textContent = list.length;
+    // auto-connect to new members in teams I belong to
+    list.forEach(t => {
+      if (!myTeamIds.has(t.id)) return;
+      t.members.forEach(m => {
+        if (m.peerId && m.peerId !== myPeerId && !cp[m.peerId]) {
+          connectTo(m.peerId, m.name, m.socketId);
+        }
+      });
+    });
+  });
+
+  socket.on('team-joined', ({ teamId, teamName }) => {
+    myTeamIds.add(teamId);
+    addLog('Joined team: ' + teamName, 'g');
+    const t = teamsList.find(x => x.id === teamId);
+    if (t) {
+      t.members.forEach(m => {
+        if (m.peerId && m.peerId !== myPeerId && !cp[m.peerId]) {
+          connectTo(m.peerId, m.name, m.socketId);
+        }
+      });
+    }
+    setCtx('team', teamId, teamName);
+    renderTeams();
+  });
+
+  socket.on('disconnect', () => addLog('Server disconnected', 'r'));
+
+  peer = new Peer(makeCfg());
+
+  peer.on('open', id => {
+    myPeerId = id;
+    peerReady = true;
+    addLog('PeerJS ready', 'g');
+    listenIncoming();
+    tryRegister();
+  });
+
+  peer.on('error', e => addLog('Peer error: ' + e.message, 'r'));
+
+  function tryRegister() {
+    if (sockReady && peerReady) {
+      socket.emit('register', { name: myName, peerId: myPeerId });
+    }
+  }
+}
+
+// ─── OUTGOING CONNECTION ──────────────────────────────────────────────────────
+function connectTo(peerId, name, socketId) {
+  if (cp[peerId] || peerId === myPeerId || !localStream) return;
+  addLog('Connecting → ' + name, 'y');
+
+  const outStream = makeOutStream();
+  const conn = peer.connect(peerId, { metadata: { name: myName, peerId: myPeerId } });
+  cp[peerId] = { name, socketId, conn, call: null, outStream, audioEl: null, audioOk: false };
+  renderActive();
+
+  conn.on('open', () => {
+    addLog('Link ✓ ' + name, 'g');
+    conn.send({ type: 'hello', name: myName, peerId: myPeerId });
+    const cl = peer.call(peerId, outStream);
+    cp[peerId].call = cl;
+    cl.on('stream', s => { attachAudio(peerId, s); cp[peerId].audioOk = true; renderActive(); addLog('Audio ✓ ' + name, 'g'); });
+    cl.on('close',  () => peerGone(peerId));
+    cl.on('error',  e  => addLog('Call err ' + name + ': ' + e, 'r'));
+  });
+
+  conn.on('data',  d => handleMsg(d, peerId));
+  conn.on('close', () => peerGone(peerId));
+  conn.on('error', e  => addLog('Conn err ' + name + ': ' + e, 'r'));
+}
+
+// ─── INCOMING CONNECTIONS ─────────────────────────────────────────────────────
+function listenIncoming() {
+  peer.on('connection', conn => {
+    const pname = conn.metadata?.name  || 'Unknown';
+    const pid   = conn.metadata?.peerId || conn.peer;
+
+    if (!cp[pid]) {
+      cp[pid] = { name: pname, socketId: null, conn, call: null, outStream: null, audioEl: null, audioOk: false };
+    } else {
+      cp[pid].conn = conn;
+    }
+
+    conn.on('open', () => {
+      addLog(pname + ' connected', 'g');
+      conn.send({ type: 'hello', name: myName, peerId: myPeerId });
+      renderActive();
+      renderPeople();
+    });
+    conn.on('data',  d => handleMsg(d, pid));
+    conn.on('close', () => peerGone(pid));
+    conn.on('error', e  => addLog('Incoming err: ' + e, 'r'));
+  });
+
+  peer.on('call', inc => {
+    const pid = inc.peer;
+    if (!localStream) { inc.close(); return; }
+    const out = makeOutStream();
+    inc.answer(out);
+    if (cp[pid]) { cp[pid].call = inc; cp[pid].outStream = out; }
+    else { cp[pid] = { name: '…', socketId: null, conn: null, call: inc, outStream: out, audioEl: null, audioOk: false }; }
+    inc.on('stream', s => {
+      attachAudio(pid, s);
+      cp[pid].audioOk = true;
+      renderActive();
+      addLog('Audio ✓ ' + (cp[pid]?.name || pid), 'g');
+    });
+    inc.on('close', () => peerGone(pid));
+  });
+}
+
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+function attachAudio(pid, stream) {
+  let el = document.getElementById('aud-' + pid);
+  if (el) el.remove();
+  el = document.createElement('audio');
+  el.id = 'aud-' + pid;
+  el.autoplay = true;
+  el.playsInline = true;
+  el.srcObject = stream;
+  document.getElementById('audioBox').appendChild(el);
+  if (cp[pid]) cp[pid].audioEl = el;
+}
+
+// ─── PEER GONE ───────────────────────────────────────────────────────────────
+function peerGone(pid) {
+  if (!cp[pid]) return;
+  const name = cp[pid].name;
+  cp[pid].audioEl?.remove();
+  delete cp[pid];
+  talkingSet.delete(pid);
+  if (talkMode === 'direct' && activePeerId === pid) setCtx('none');
+  renderActive();
+  renderPeople();
+  renderTeams();
+  addLog(name + ' disconnected', 'r');
+}
+
+// ─── DATA MESSAGES ───────────────────────────────────────────────────────────
+function handleMsg(data, fromPid) {
+  if (data.type === 'hello') {
+    if (cp[fromPid]) cp[fromPid].name = data.name;
+    renderPeople();
+    renderActive();
+  }
+  if (data.type === 'ptt-start') {
+    talkingSet.add(fromPid);
+    addLog((data.name || cp[fromPid]?.name || 'Peer') + ' speaking…', 'y');
+    renderPeople(); renderTeams(); renderActive();
+  }
+  if (data.type === 'ptt-stop') {
+    talkingSet.delete(fromPid);
+    renderPeople(); renderTeams(); renderActive();
+  }
+}
+
+// ─── TALK CONTEXT ────────────────────────────────────────────────────────────
+function setCtx(mode, id, label) {
+  talkMode = mode;
+  activePeerId = mode === 'direct' ? id : null;
+  activeTeamId = mode === 'team'   ? id : null;
+
+  const badge = document.getElementById('pttBadge');
+  if (mode === 'none') {
+    badge.className = 'ptt-badge';
+    badge.textContent = '— none selected —';
+    setPtt('off');
+  } else if (mode === 'direct') {
+    badge.className = 'ptt-badge direct';
+    badge.textContent = '→ ' + label + ' (direct)';
+    setPtt('rdy');
+  } else {
+    badge.className = 'ptt-badge team';
+    badge.textContent = '📡 ' + label;
+    setPtt('rdy');
+  }
+  renderTeams();
+}
+
+function targetPids() {
+  if (talkMode === 'direct') {
+    return activePeerId && cp[activePeerId] ? [activePeerId] : [];
+  }
+  if (talkMode === 'team') {
+    const t = teamsList.find(x => x.id === activeTeamId);
+    if (!t) return [];
+    return t.members.filter(m => m.peerId && m.peerId !== myPeerId && cp[m.peerId]).map(m => m.peerId);
+  }
+  return [];
+}
+
+// ─── PTT ─────────────────────────────────────────────────────────────────────
+async function startTalk(e) {
+  if (e) e.preventDefault();
+  if (isTalking || talkMode === 'none') return;
+  const targets = targetPids();
+  if (targets.length === 0) return;
+  if (!localStream) { const ok = await ensureMic(); if (!ok) return; }
+
+  isTalking = true;
+  targets.forEach(pid => cp[pid]?.outStream?.getAudioTracks()?.forEach(t => t.enabled = true));
+  setPtt('live');
+  talkingSet.add('me');
+  targets.forEach(pid => cp[pid]?.conn?.open && cp[pid].conn.send({ type: 'ptt-start', name: myName }));
+  renderPeople(); renderTeams(); renderActive();
+  addLog('You: speaking…', 'g');
+}
+
+function stopTalk(e) {
+  if (e) e.preventDefault();
+  if (!isTalking) return;
+  isTalking = false;
+  Object.values(cp).forEach(p => p.outStream?.getAudioTracks()?.forEach(t => t.enabled = false));
+  setPtt('rdy');
+  talkingSet.delete('me');
+  Object.values(cp).forEach(p => p.conn?.open && p.conn.send({ type: 'ptt-stop', name: myName }));
+  renderPeople(); renderTeams(); renderActive();
+  addLog('You: stopped', '');
+}
+
+function setPtt(state) {
+  const btn  = document.getElementById('pttBtn');
+  const icon = document.getElementById('pttIcon');
+  const lbl  = document.getElementById('pttLabel');
+  if (state === 'off') {
+    btn.className  = 'ptt-btn ptt-off';
+    icon.textContent = '🎙️'; lbl.textContent = 'Hold to Talk';
+  } else if (state === 'rdy') {
+    btn.className  = 'ptt-btn ptt-rdy';
+    icon.textContent = '🎙️'; lbl.textContent = 'Hold to Talk';
+  } else {
+    btn.className  = 'ptt-btn ptt-live';
+    icon.innerHTML = '<div class="wave"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>';
+    lbl.textContent = 'Speaking…';
+  }
+}
+
+// ─── RENDER: PEOPLE ──────────────────────────────────────────────────────────
+function renderPeople() {
+  const el = document.getElementById('usersList');
+  if (onlineUsers.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">No one else online yet.<br>Share the link to invite teammates.</div></div>';
+    return;
+  }
+  el.innerHTML = onlineUsers.map(u => {
+    const isConn   = !!cp[u.peerId];
+    const isTk     = talkingSet.has(u.peerId);
+    const isActive = talkMode === 'direct' && activePeerId === u.peerId;
+    const cardCls  = 'ucard' + (isTk ? ' talking' : isConn ? ' conn' : '');
+    const subCls   = 'usub ' + (isTk ? 'talking' : isConn ? 'conn' : 'online');
+    const subTxt   = isTk ? '🎙 Speaking…' : isConn ? '● Connected' : '● Online';
+    const btnCls   = 'btn ' + (isActive ? 'btn-g btn-active' : 'btn-b');
+    const btnTxt   = isActive ? '✓ Active' : '→ Direct Talk';
+    return `<div class="${cardCls}">
+      <div class="av av-g">${esc(initials(u.name))}</div>
+      <div class="uinfo">
+        <div class="uname">${esc(u.name)}</div>
+        <div class="${subCls}">${subTxt}</div>
+      </div>
+      <div class="uacts">
+        <button class="${btnCls}" onclick="directTalk('${esc(u.peerId)}','${esc(u.name)}','${esc(u.socketId)}')">${btnTxt}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RENDER: TEAMS ───────────────────────────────────────────────────────────
+function renderTeams() {
+  const el = document.getElementById('teamsList');
+  if (teamsList.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-txt">No teams yet.<br>Create one above.</div></div>';
+    return;
+  }
+  el.innerHTML = teamsList.map(t => {
+    const mine    = myTeamIds.has(t.id);
+    const isAct   = activeTeamId === t.id;
+    const cardCls = 'tcard' + (isAct ? ' active' : mine ? ' mine' : '');
+    const chips   = t.members.map(m => {
+      const isMe = m.peerId === myPeerId;
+      const isTk = talkingSet.has(isMe ? 'me' : m.peerId);
+      return `<span class="chip${isMe ? ' me' : ''}${isTk ? ' tk' : ''}">${esc(m.name)}${isMe ? ' (you)' : ''}</span>`;
+    }).join('') || '<span class="chip">empty</span>';
+
+    let actions = '';
+    if (mine) {
+      const actBtn = isAct
+        ? '<span class="active-dot">● Active</span>'
+        : `<button class="btn btn-g" onclick="activateTeam('${esc(t.id)}','${esc(t.name)}')">Activate PTT</button>`;
+      actions = `${actBtn}<button class="btn btn-r" onclick="leaveTeam('${esc(t.id)}')">Leave</button>`;
+    } else {
+      actions = `<button class="btn btn-b" onclick="joinTeam('${esc(t.id)}')">Join</button>`;
+    }
+
+    return `<div class="${cardCls}">
+      <div class="thead">
+        <span style="font-size:15px">📡</span>
+        <span class="tname">${esc(t.name)}</span>
+        <span class="tcnt">${t.members.length} member${t.members.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="tchips">${chips}</div>
+      <div class="tacts">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RENDER: ACTIVE ──────────────────────────────────────────────────────────
+function renderActive() {
+  const el    = document.getElementById('connList');
+  const pairs = Object.entries(cp);
+  document.getElementById('bdg-active').textContent = pairs.length;
+
+  if (pairs.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🔌</div><div class="empty-txt">No connections yet.<br>Direct-talk a user or join a team.</div></div>';
+    return;
+  }
+  el.innerHTML = pairs.map(([pid, p]) => {
+    const isTk     = talkingSet.has(pid);
+    const cardCls  = 'conncard' + (p.audioOk ? ' audio' : '');
+    const audioTxt = p.audioOk ? '🔊 audio ok' : '⏳ connecting…';
+    const color    = p.audioOk ? '#1D9E75' : '#555';
+    const talkTxt  = isTk ? ' · 🎙 speaking' : '';
+    const isActive = (talkMode === 'direct' && activePeerId === pid);
+    const btnCls   = 'btn ' + (isActive ? 'btn-b btn-active' : 'btn-b');
+    const btnTxt   = isActive ? '✓ Active' : '→ Direct PTT';
+    return `<div class="${cardCls}">
+      <div class="av av-b">${esc(initials(p.name))}</div>
+      <div class="uinfo">
+        <div class="uname">${esc(p.name)}</div>
+        <div class="usub" style="color:${color}">${audioTxt}${talkTxt}</div>
+      </div>
+      <button class="${btnCls}" onclick="setDirectFromActive('${esc(pid)}','${esc(p.name)}')">${btnTxt}</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+async function directTalk(peerId, name, socketId) {
+  if (!localStream) { const ok = await ensureMic(); if (!ok) return; }
+  if (!cp[peerId]) connectTo(peerId, name, socketId);
+  setCtx('direct', peerId, name);
+  renderPeople();
+  addLog('Direct context → ' + name, 'g');
+}
+
+function setDirectFromActive(peerId, name) {
+  setCtx('direct', peerId, name);
+  renderActive();
+}
+
+function createTeam() {
+  const inp  = document.getElementById('newTeamName');
+  const name = inp.value.trim();
+  if (!name) return;
+  inp.value = '';
+  if (!localStream) ensureMic();
+  socket.emit('create-team', { teamName: name });
+}
+
+function joinTeam(teamId) {
+  if (!localStream) ensureMic();
+  socket.emit('join-team', { teamId });
+}
+
+function leaveTeam(teamId) {
+  myTeamIds.delete(teamId);
+  socket.emit('leave-team', { teamId });
+  if (activeTeamId === teamId) setCtx('none');
+  renderTeams();
+}
+
+function activateTeam(teamId, teamName) {
+  if (!localStream) ensureMic();
+  setCtx('team', teamId, teamName);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  ['people','teams','active'].forEach(t => {
+    document.getElementById('pane-' + t).classList.toggle('on', t === name);
+    document.getElementById('tab-'  + t).classList.toggle('on', t === name);
+  });
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.repeat) return;
+  if (document.getElementById('mainApp').style.display === 'none') return;
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  e.preventDefault();
+  startTalk();
+});
+document.addEventListener('keyup', e => {
+  if (e.code !== 'Space') return;
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  e.preventDefault();
+  stopTalk();
+});
+</script>
+</body>
+</html>
