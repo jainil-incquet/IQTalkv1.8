@@ -109,4 +109,4 @@ app.get('/health', (req, res) => res.json({
 }));
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT,'0.0.0.0' ,() => console.log(`IQTalk v2 running on port ${PORT}`));
+server.listen(PORT, () => console.log(`IQTalk v2 running on port ${PORT}`));
