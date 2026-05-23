@@ -6,10 +6,10 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io with a large buffer size to handle audio blobs
+// Initialize Socket.io (Buffer size kept large just in case, though chunks are tiny)
 const io = new Server(server, { 
   cors: { origin: '*' },
-  maxHttpBufferSize: 1e7 // 10MB limit for audio chunks
+  maxHttpBufferSize: 1000000000 // 1GB for audio blobs/chunks
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -75,45 +75,53 @@ io.on('connection', socket => {
     io.emit('teams-updated', getTeamList());
   });
 
-  // 3. Audio & Presence Routing
-  socket.on('transmit-audio', (payload) => {
-    const { targetType, targetId, audioBlob, mimeType } = payload;
-    const data = {
-      senderId: socket.id,
-      senderName: users[socket.id]?.name || 'Unknown',
-      audioBlob,
-      mimeType,
-      targetType
-    };
-
+  // 3. Live Audio Streaming & Presence Routing
+  
+  // a. Announce the stream is starting (Replaces person-talk-started)
+  socket.on('stream-start', ({ targetType, targetId, mimeType }) => {
+    const payload = { senderId: socket.id, mimeType };
+    
     if (targetType === 'team') {
-      socket.to(targetId).emit('receive-audio', data);
+      socket.to(targetId).emit('incoming-stream-start', payload);
     } else if (targetType === 'user') {
-      io.to(targetId).emit('receive-audio', data);
+      io.to(targetId).emit('incoming-stream-start', payload);
     }
   });
 
-  // UI Indicators for "Speaking" state
-  socket.on('ptt-start', ({ targetType, targetId }) => {
-    if (targetType === 'team') socket.to(targetId).emit('ptt-started', { senderId: socket.id });
-    else if (targetType === 'user') io.to(targetId).emit('ptt-started', { senderId: socket.id });
+  // b. Relay the continuous data chunks as fast as possible (Replaces transmit-audio)
+  socket.on('stream-chunk', ({ targetType, targetId, audioChunk }) => {
+    // audioChunk arrives as a raw binary Buffer
+    const payload = { senderId: socket.id, audioChunk };
+    
+    if (targetType === 'team') {
+      socket.to(targetId).emit('incoming-stream-chunk', payload);
+    } else if (targetType === 'user') {
+      io.to(targetId).emit('incoming-stream-chunk', payload);
+    }
   });
 
-  socket.on('ptt-stop', ({ targetType, targetId }) => {
-    if (targetType === 'team') socket.to(targetId).emit('ptt-stopped', { senderId: socket.id });
-    else if (targetType === 'user') io.to(targetId).emit('ptt-stopped', { senderId: socket.id });
+  // c. Announce the stream is over (Replaces person-talk-stopped)
+  socket.on('stream-stop', ({ targetType, targetId }) => {
+    const payload = { senderId: socket.id };
+
+    if (targetType === 'team') {
+      socket.to(targetId).emit('incoming-stream-stop', payload);
+    } else if (targetType === 'user') {
+      io.to(targetId).emit('incoming-stream-stop', payload);
+    }
   });
-  
 
   // 4. Cleanup on disconnect
   socket.on('disconnect', () => {
     const user = users[socket.id];
     if (!user) return;
     console.log('[user-]', user.name);
+    
     Object.keys(teams).forEach(tid => {
       teams[tid].members = teams[tid].members.filter(id => id !== socket.id);
       if (teams[tid].members.length === 0) delete teams[tid];
     });
+    
     delete users[socket.id];
     io.emit('users-updated', getUserList());
     io.emit('teams-updated', getTeamList());
@@ -121,4 +129,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`IQTalk Socket Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`IQTalk Streaming Socket Server running on port ${PORT}`));
